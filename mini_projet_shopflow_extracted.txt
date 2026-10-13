@@ -1,0 +1,251 @@
+===== PAGE 1 =====
+M in i - PROJET
+Système de Gestion d'une Boutique en Ligne
+ShopFlow
+Durée du projet 3 semaines
+Travail Binôme ou individuel
+Rendu Archiv e ZIP + Rapport PDF + Exposé
+Backend (sur 15) Spring Boot 3 ² Jakarta EE · MVC · JPA · Lombok
+Frontend (sur 5) Next.js ou Angular
+Note totale 20 points
+Année universitaire 202 5 ± 202 6
+
+===== PAGE 2 =====
+1. Contexte et Objectifs
+Dans ce projet, vous devez concevoir et développer ShopFlow, une plateforme e - commerce
+complète permettant à des vendeurs de publier leurs produits et à des clients d'effectuer des
+achats en ligne. Ce sujet couvre l'ensemble de la chaîne de valeur d'une bo utique numérique
+moderne : catalogue produits, panier, commandes, paiement simulé et gestion des stocks.
+1.1 Présentation du système
+ShopFlow est une marketplace B2C (Business to Consumer) comportant trois profils utilisateurs :
+ ADMIN : gestion globale de la plateforme, des utilisateurs et des catégories
+ SELLER (Vendeur) : gestion de sa boutique, de ses produits et de ses commandes reçues
+ CUSTOMER (Client) : navigation dans le catalogue, gestion du panier, passage de
+commandes
+1.2 Objectifs pédagogiques
+ C oncevoir une API REST complète avec Spring Boot 3 et Jakarta EE
+ Modéliser des relations JPA complexes (ManyToMany, héritage, composition)
+ Implémenter des règles métier réelles : stock, statut de commande, remises
+ Gérer l'authentification et les autorisatio ns par rôle (Spring Security + JWT)
+ Construire une interface utilisateur dynamique consommant l'API
+ Produire une documentation Swagger/OpenAPI exploitable
+2. Spécifications Fonctionnelles
+2.1 Gestion du Catalogue Produits
+ Ajouter, modifier, désactiver un produit (SELLER/ADMIN)
+ Associer un produit à une ou plusieurs catégories
+ Gérer les variantes d'un produit : taille, couleur, avec stock individuel par variante
+ Uploader des images (URL distante ou champ texte simulant l'upload)
+ Recherche plein texte : nom, description, catégorie, prix min/max
+ Trier par prix, popularité, nouveautés ; pagination obligatoire
+ Afficher les produits en promotion (prix barré + pourcentage de remise)
+2.2 Gestion des Utilisateurs
+ Inscription client avec validation (email unique, mot de passe fort)
+ Authentification par JWT (access token + refresh token)
+ Gestion du profil : adresses de livraison multiples, historique de commandes
+ Inscription vendeur avec informations boutique (nom, l ogo, description)
+ Activation / désactivation de compte (ADMIN)
+ Réinitialisation de mot de passe par token
+
+===== PAGE 3 =====
+2.3 Panier d'Achat
+ Ajouter / retirer des produits (ou variantes) dans le panier
+ Modifier les quantités avec vérification du stock disponible en temps réel
+ Appliquer un code promo (remise fixe ou pourcentage)
+ Calculer le sous - total, frais de livraison et total TTC
+ Sauvegarder le panier en base (persistant après déconnexion)
+2.4 Gestion des Commandes
+ Passer une commande depuis le panier (vérification st ock finale)
+ Choisir une adresse de livraison parmi les adresses sauvegardées
+ Simuler le paiement : PENDING - > PAID - > PROCESSING - > SHIPPED - > DELIVERED
+ Annuler une commande (seulement si statut PENDING ou PAID)
+ Remboursement simulé en cas d'annulation
+ Génération d'un numéro de commande unique (ex : ORD - 2024 - XXXXX)
+ Notification de changement de statut (réponse API ou flag isNew)
+2.5 Avis & Notation
+ Laisser un avis (note 1 - 5 + commentaire) uniquement sur un produit acheté
+ Calcul de la note moyenne automatique
+ Modération des avis (ADMIN)
+2.6 Tableau de Bord
+ ADMIN : chiffre d'affaires global, top produits, top vendeurs, commandes récentes
+ SELLER : revenus, commandes en attente, alertes de stock faible
+ CUSTOMER : mes commande s en cours, mes derniers avis
+3. Spécifications Techniques ² Backend (15 pts)
+3.1 Stack technologique imposée
+Technologie Version / Détail
+Java 17 ou 21 (LTS)
+Spring Boot 3.x
+Jakarta EE Jakarta Persistence 3, Jakarta Validation 3, Jakarta Bean Validation
+Spring MVC Controllers REST ² @RestController, @RequestMapping
+Spring Data JPA Repositories, JPQL, Specifications, Pageable
+Lombok @Data, @Builder, @Slf4j, @RequiredArgsConstructor, @Value
+Base de données PostgreSQL (production) ou H2 en mémoire (dev/test)
+Sécurité Spring Security 6 + JWT (jjwt) ² accès token + refresh token
+
+===== PAGE 4 =====
+Build Maven (pom.xml fourni)
+Documentation API Springdoc OpenAPI 3 (Swagger UI accessible sur /swagger - ui)
+Mapping DTO MapStruct (recommandé) ou mapping manuel
+3.2 Architecture en couches ² obligatoire
+ Controller : expose les endpoints REST, valide les entrées (@Valid), retourne les DTOs et
+codes HTTP
+ Service : contient la logique métier, les règles de gestion, les transactions (@Transactional)
+ Repository : interfaces Spring Data JPA, requêtes JPQL ou dé rivées, Specifications pour
+les filtres complexes
+ Entity : entités JPA annotées (Jakarta Persistence), relations, contraintes, lifecycle hooks
+ DTO : Request / Response séparés des entités ² jamais d'entité exposée directement
+ Exception : classes d'exceptio n métier custom + @ControllerAdvice globalisant la gestion
+des erreurs
+ Mapper : conversion Entity < - > DTO (MapStruct ou manuel)
+3.3 Modèle de données (entités minimales)
+ User : id, email, motDePasse, prenom, nom, role (ADMIN/SELLER/CUSTOMER), actif,
+dateC reation
+ SellerProfile : id, user (1 - 1), nomBoutique, description, logo, note
+ Address : id, user, rue, ville, codePostal, pays, principal (boolean)
+ Category : id, nom, description, parent (auto - référence pour sous - catégories)
+ Product : id, seller, nom, description, prix, prixPromo, stock, actif, dateCreation, categories
+(M - M), images
+ ProductVariant : id, product, attribut (ex: Taille), valeur (ex: M), stockSupplémentaire,
+prixDelta
+ Cart : id, customer (1 - 1), lignes (1 - M), dateM odification
+ CartItem : id, cart, product, variant (nullable), quantite
+ Order : id, customer, statut (enum), numeroCommande, adresseLivraison, sousTotal,
+fraisLivraison, totalTTC, dateCommande, lignes
+ OrderItem : id, order, product, variant, quantite, prixU nitaire
+ Coupon : id, code, type (PERCENT/FIXED), valeur, dateExpiration, usagesMax,
+usagesActuels, actif
+ Review : id, customer, product, note (1 - 5), commentaire, dateCreation, approuve
+Les relations doivent être correctement configurées : cascade, orphanRe moval, FetchType (LAZY
+par défaut, EAGER avec justification).
+3.4 Endpoints REST attendus
+Authentification ² /api/auth
+ POST /api/auth/register ² inscription client ou vendeur
+ POST /api/auth/login ² retourne access_token + refresh_token
+ POST /api/auth/refresh ² renouvellement du token
+ POST /api/auth/logout ² invalidation du refresh token
+
+===== PAGE 5 =====
+Produits ² /api/products
+ GET /api/products ² liste paginée + filtres (categorie, prix, vendeur, promo)
+ GET /api/products/{id} ² détail + variantes + avis + note moyenne
+ POST /api/products ² créer (SELLER/ADMIN)
+ PUT /api/products/{id} ² modifier
+ DELETE /api/products/{id} ² désactiver (soft delete)
+ GET /api/products/search?q= ² recherche full - text
+ GET /api/products/top - selling ² top 10 meilleures ventes
+Caté gories ² /api/categories
+ GET /api/categories ² arbre de catégories
+ POST/PUT/DELETE /api/categories ² gestion (ADMIN)
+Panier ² /api/cart
+ GET /api/cart ² panier du client connecté
+ POST /api/cart/items ² ajouter un article
+ PUT /api/cart/items/{itemId} ² modifier quantité
+ DELETE /api/cart/items/{itemId} ² retirer un article
+ POST /api/cart/coupon ² appliquer un code promo
+ DELETE /api/cart/coupon ² retirer le code promo
+Commandes ² /api/orders
+ POST /api/orders ² passer une comm ande depuis le panier
+ GET /api/orders/{id} ² détail
+ GET /api/orders/my ² commandes du client connecté
+ PUT /api/orders/{id}/status ² mettre à jour le statut (SELLER/ADMIN)
+ PUT /api/orders/{id}/cancel ² annuler (CUSTOMER si éligible)
+ GET /api/orders ² toutes les commandes (ADMIN)
+Avis ² /api/reviews
+ POST /api/reviews ² poster un avis (CUSTOMER, achat vérifié)
+ GET /api/reviews/product/{productId} ² avis d'un produit
+ PUT /api/reviews/{id}/approve ² approuver (ADMIN)
+Dashboard ² /api/dashboard
+ GET /api/dashboard /admin ² stats globales
+ GET /api/dashboard/seller ² stats du vendeur connecté
+Coupons ² /api/coupons
+ POST/PUT/DELETE /api/coupons ² gestion (ADMIN)
+ GET /api/coupons/validate/{code} ² vérifier la validité
+4. Spécifications Techniques ² Frontend (5 pts)
+4.1 Framework au choix : Next.js ou Angular
+Choisissez un seul framework et justifiez votre choix dans le rapport (ecosystème, SSR, routing,
+gestion d'état...).
+
+===== PAGE 6 =====
+4.2 Pages & fonctionnalités minimales
+ Page d'accueil : produits en vedette, catégories, banniè re promo
+ Catalogue produits : grille avec filtres dynamiques (catégorie, prix, note) et recherche
+ Fiche produit : images, variantes sélectionnables, avis, bouton Ajouter au panier
+ Panier : liste des articles, application coupon, total, bouton Commander
+ Tun nel de commande : sélection adresse, récapitulatif, confirmation
+ Espace client : mes commandes + suivi statut, mes avis
+ Espace vendeur : dashboard rapide, gestion produits, commandes reçues
+ Authentification : login / register avec gestion JWT (stockage séc urisé)
+4.3 Critères de qualité
+ Design responsive (mobile - first recommandé)
+ Gestion des états : chargement (skeleton/spinner), erreurs, listes vides
+ Intercepteur HTTP pour injecter le Bearer token dans chaque requête
+ Refresh automatique du token expiré
+ Gua rds/middleware de route pour les pages protégées
+ Composants réutilisables : ProductCard, OrderStatusBadge, RatingStars, etc.
+ Optionnel (+bonus) : mode sombre, animations de transition, PWA
+5. Grille d'Évaluation Détaillée
+5.1 Backend ² 15 points
+Critère d 'évaluation Pts Ce que nous évaluerons
+Relations, contraintes DB, enums, lifecycle, 3 Modèle de données & entités JPA
+héritage
+Filtres, pagination, JPQL, Specifications, 2 Repository & requêtes de données
+performances
+Règles commande, stock, coupon, statut, 3 Couche Service & logique métier
+transactions
+Codes HTTP corrects, validation @Valid, 2 Couche Controller REST
+gestion des cas limites
+Access/refresh token, filtres, @PreAuthorize 3 Sécurité JWT & autorisation par rôle
+par endpoint
+Lombok, proprete code, Swagger UI 2 Qualité & documentation
+fonctionnel, README
+Tests sur la couche Service (couverture >= + 2 BONUS : Tests JUnit/Mockito
+70%)
++ 2 bonus TOTAL BACKEND 15
+
+===== PAGE 7 =====
+5.2 Frontend ² 5 points
+Critère d'évaluation Pts Ce que nous évaluerons
+Appels HTTP, intercepteur, refresh token, 2 Intégration API & gestion JWT
+routes gardées
+Flux complet d'achat fonctionnel 2 Fonctionnalités UI : catalogue, panier,
+commandes
+Responsive, composants réutilisables, gestion 1 Qualité du code & UX/UI
+d'états
+/5 points TOTAL FRONTEND 5
+6. Livrables & Modalités de Rendu
+6.1 Contenu de l'archive ZIP
+ backend/ ² code source Spring Boot (sans target/)
+ frontend/ ² code source Next.js ou Angular (sans node_modules/ ni .next/)
+ rapport.pdf ² 6 à 8 pages : architecture, choix techniques, difficultés
+ README.md ² instructions complètes d'installation et de lancement
+ shopflow.postman_collection.json ² col lection Postman couvrant tous les endpoints
+ data.sql (optionnel) ² données de démonstration pour la présentation
+6.2 Contenu du rapport technique
+1. Schéma d'architecture tech nique (couches + flux de données)
+2. Description des choix d'implémentation les plus complexes
+3. Difficultés rencontrées et solutions apportées
+4. Répartition des tâches si binôme
+6.3 Déroulement de la soutenance (1 0 min)
+ Démonstration live du flux complet : inscrip WLRQ:DFKDW:VXLYLFRPPDQGH 3 min)
+ Présentation du code : entités JPA, service l e plus complexe, sécurité JWT ( 3 min)
+ Questions ( 4 min)
+7. Conseils Méthodolo giques & Ressources
+Ordre de développement recommandé
+5. Modéliser les entités et valider le schéma DB (H2 Console)
+6. Implémenter les repositories avec des tests de requêtes simples
+7. 'pYHORSSHUOHVVHUYLFHVPRGXOHSDUPRGXOH$XWKĺ&DWDORJXH:3DQLHUĺ&RPPDQGHV
+8. Ajouter la sécurité Spring Security + JWT en avant - dernière étape
+9. Documenter avec Swagger au fur et à mesure
+
+===== PAGE 8 =====
+10. Développer le frontend une fois l'API backend stabilisée
+11. Soigner la collection Postman avant le rendu
+Ressources
+ Spring Boot 3 docs : https://docs.spring.io/spring - boot/docs/current/reference/html/
+ Spring Data JPA : https://docs.spring.io/spring - data/jpa/docs/current/reference/html/
+ Spring Security 6 + JWT : https://do cs.spring.io/spring - security/reference/
+ Lombok : https://projectlombok.org/features/
+ Springdoc OpenAPI : https://springdoc.org/
+ MapStruct : https://mapstruct.org/documentation/stable/reference/html/
+ Next.js : https://nextjs.org/docs
+ Angular : https://angular.dev/overview
+.
